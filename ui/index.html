@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Genie - AI Data Science Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-magic"></i> Data Genie</h2>
+            <button id="toggle-sidebar" class="toggle-btn"><i class="fas fa-bars"></i></button>
+        </div>
+        <ul class="nav-list">
+            <li><a href="#upload" class="nav-link active"><i class="fas fa-upload"></i> Upload</a></li>
+            <li><a href="#dashboard" class="nav-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="#profile" class="nav-link"><i class="fas fa-chart-bar"></i> Profiling</a></li>
+            <li><a href="#cleaning" class="nav-link"><i class="fas fa-broom"></i> Cleaning</a></li>
+            <li><a href="#visualize" class="nav-link"><i class="fas fa-chart-line"></i> Visualize</a></li>
+            <li><a href="#ml" class="nav-link"><i class="fas fa-brain"></i> ML</a></li>
+            <li><a href="#export" class="nav-link"><i class="fas fa-download"></i> Export</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content">
+        <!-- Upload Section -->
+        <section id="upload" class="page-section active">
+            <div class="upload-container">
+                <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                <h1>Upload Your Dataset</h1>
+                <p>Support CSV and XLSX files</p>
+                <div class="file-upload">
+                    <input type="file" id="file-input" accept=".csv,.xlsx" />
+                    <label for="file-input" class="upload-btn">
+                        <i class="fas fa-file-upload"></i> Choose File
+                    </label>
+                    <p id="file-name" class="file-name"></p>
+                </div>
+                <button id="upload-btn" class="primary-btn" disabled>
+                    <i class="fas fa-upload"></i> Upload & Analyze
+                </button>
+            </div>
+        </section>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="page-section">
+            <h1>Dashboard</h1>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <i class="fas fa-table"></i>
+                    <h3 id="rows-count">-</h3>
+                    <p>Rows</p>
+                </div>
+                <div class="summary-card">
+                    <i class="fas fa-columns"></i>
+                    <h3 id="cols-count">-</h3>
+                    <p>Columns</p>
+                </div>
+            </div>
+            <div class="section-grid">
+                <div class="card">
+                    <h3><i class="fas fa-chart-bar"></i> Data Profiling</h3>
+                    <button id="profile-btn" class="secondary-btn">Generate Profile</button>
+                </div>
+                <div class="card">
+                    <h3><i class="fas fa-broom"></i> Cleaning</h3>
+                    <button id="cleaning-btn" class="secondary-btn">Analyze Issues</button>
+                </div>
+                <div class="card">
+                    <h3><i class="fas fa-chart-line"></i> Visualization</h3>
+                    <button id="viz-btn" class="secondary-btn">Open Chat</button>
+                </div>
+                <div class="card">
+                    <h3><i class="fas fa-brain"></i> ML Models</h3>
+                    <button id="ml-btn" class="secondary-btn">Train Models</button>
+                </div>
+            </div>
+            <div class="columns-list">
+                <h3>Columns</h3>
+                <ul id="columns-list"></ul>
+            </div>
+        </section>
+
+        <!-- Profiling Section -->
+        <section id="profile" class="page-section">
+            <h1>Data Profiling</h1>
+            <button id="generate-profile" class="primary-btn">Generate Profile</button>
+            <div id="profile-results" class="results-container"></div>
+        </section>
+
+        <!-- Cleaning Section -->
+        <section id="cleaning" class="page-section">
+            <h1>Cleaning Suggestions</h1>
+            <button id="analyze-issues" class="primary-btn">Analyze Data Issues</button>
+            <div id="cleaning-suggestions" class="suggestions-container"></div>
+        </section>
+
+        <!-- Visualization Section -->
+        <section id="visualize" class="page-section">
+            <h1>AI Visualization Chat</h1>
+            <div id="chat-messages" class="chat-container"></div>
+            <div class="chat-input-container">
+                <input type="text" id="chat-input" placeholder="Ask me to create charts like 'show sales over time'...">
+                <button id="send-chat" class="primary-btn"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </section>
+
+        <!-- ML Section -->
+        <section id="ml" class="page-section">
+            <h1>Machine Learning</h1>
+            <div id="ml-chat" class="chat-container"></div>
+            <div class="ml-input-container">
+                <input type="text" id="ml-input" placeholder="Train model: predict house price using features...">
+                <button id="send-ml" class="primary-btn"><i class="fas fa-rocket"></i> Train</button>
+            </div>
+            <div id="ml-results" class="results-container"></div>
+        </section>
+
+        <!-- Export Section -->
+        <section id="export" class="page-section">
+            <h1>Export Results</h1>
+            <div class="export-buttons">
+                <button id="export-csv" class="secondary-btn">
+                    <i class="fas fa-file-csv"></i> Download Cleaned CSV
+                </button>
+                <button id="export-report" class="secondary-btn">
+                    <i class="fas fa-file-pdf"></i> Download Report
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p id="loading-text">Loading...</p>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
