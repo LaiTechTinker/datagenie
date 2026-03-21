@@ -6,6 +6,8 @@ from visagent import generate_chart_spec
 from VisualCreator import apply_aggregation, generate_chart
 from Data_cleaning import generate_cleaning_report
 from Cleaningsum import explain_cleaning
+from Mlengine import run_automl
+from Mlexplanation import explain_results
 
 def run_profiling_pipeline(file_path: str):
     # Step 1: Profile dataset
@@ -66,5 +68,18 @@ def run_cleaning_pipeline(file_path: str):
     explanation = explain_cleaning(report)
     return {
         "report": report,
+        "explanation": explanation
+    }
+# this code block is for running the Ml pipeline
+
+def run_ml_pipeline(file_path: str, target_column: str):
+    df = pd.read_csv(file_path)
+
+    result = run_automl(df, target_column)
+
+    explanation = explain_results(result)
+
+    return {
+        "result": result,
         "explanation": explanation
     }
