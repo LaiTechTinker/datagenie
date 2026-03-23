@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import uuid
 from werkzeug.utils import secure_filename
 from flask import Flask,jsonify,request
 from flask_cors import CORS
@@ -18,43 +19,73 @@ app=Flask(__name__)
 CORS(app)
 # Folder to store uploads
 UPLOAD_FOLDER = "uploads"
-ALLOWED_EXTENSIONS = {"csv", "xlsx"}
+ALLOWED_EXTENSIONS = ["csv", "xlsx"]
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+file_store={}  # In-memory store for file_id to file_path mapping
+# this is an helper function for loading the dataframe based on file_id, this will be used in all pipelines to load the data for processing
+def load_dataframe(file_id):
+    if file_id not in file_store:
+        raise ValueError("Invalid file_id")
 
+    file_path = file_store[file_id]
+    ext = Path(file_path).suffix.lower()
+
+    if ext == ".csv":
+        return pd.read_csv(file_path)
+    elif ext == ".xlsx":
+        return pd.read_excel(file_path)
+    else:
+        raise ValueError("Unsupported file format")
 @app.route("/",methods=["GET"])
 def send_ui():
     return jsonify({
         "message":"hello brother"
     })
-@app.route("/upload_file",methods=["POST"])
+@app.route("/upload", methods=["POST"])
+def upload_file():
+    try:
+        if "file" not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+
+        file = request.files["file"]
+
+        if file.filename == "":
+            return jsonify({"error": "No selected file"}), 400
+
+        filename = secure_filename(file.filename)
+        ext = Path(filename).suffix.lower()
+
+        if ext not in ALLOWED_EXTENSIONS:
+            return jsonify({"error": "Only CSV and XLSX allowed"}), 400
+
+        # Generate unique file_id
+        file_id = str(uuid.uuid4())
+
+        # Save file
+        saved_name = f"{file_id}_{filename}"
+        file_path = os.path.join(UPLOAD_FOLDER, saved_name)
+        file.save(file_path)
+
+        # Store mapping
+        file_store[file_id] = file_path
+
+        return jsonify({
+            "message": "File uploaded successfully",
+            "file_id": file_id
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+@app.route("/profiling",methods=["POST"])
 def run_profiling_pipeline():
  try:
-    # check if a file is uploaded
-    if "file" not in request.files:
-        return  jsonify({
-            'error':"No files is provided"}),400
-    # this allows only one file to be uploaded at a time
-    if  len(request.files.getlist("file"))!=1:
-        return  jsonify({
-            'error':"Please upload only one file at a time"}),400
-    file=request.files["file"]
-    file_name=file.filename
-    # check is file_name is not empty
-    if file_name=="":
-        return  jsonify({
-            'error':"No file is selected"}),400
-    # Secure filename
-    file_name = secure_filename(file.filename)
-    extension=Path(file_name).suffix.lower()
-   
-    if extension not in [".csv",".xlsx"]:
-        return jsonify({
-            'error':"Invalid file format. Please upload a CSV or Excel file"}),400
-    file_path = os.path.join(app.config["UPLOAD_FOLDER"], file_name)
-    file.save(file_path)
+  
+    data=request.get_json()
+    file_id=data.get("file_id")
+    df=load_dataframe(file_id)
     # Step 1: Profile dataset
-    profile = profile_data(file_path)
+    profile = profile_data(df=df)
 
     # Step 2: Convert to text for LLM
     summary_text = profile_to_text(profile)
@@ -62,45 +93,44 @@ def run_profiling_pipeline():
     # Step 3: Generate AI insights
     insights = generate_insights(summary_text)
 
-    return {
+    return jsonify({
         "profile": profile,
         "insights": insights
-    }
+    })
  except Exception as e:
     return jsonify({"error": f"{e}"}),500
 
 # this code block will generate data visualixation
-def run_visualization_pipeline(file_path: str, user_query: str):
- try:
-    # Load data
-    ext= Path(file_path).suffix
-    
-    if ext == '.csv':
-            df = pd.read_csv(file_path, encoding='utf-8')
-    elif ext == '.xlsx':
-            df = pd.read_excel(file_path)
-    else:
-            ValueError("Unsupported file format. Please upload a CSV or Excel file.")
-            return None, None, None
+@app.route("/visualize", methods=["POST"])
+def visualize():
+    try:
+        data = request.get_json()
 
-    # Step 1: Get chart spec from LLM
-    spec = generate_chart_spec(user_query, list(df.columns))
+        file_id = data.get("file_id")
+        user_query = data.get("query")
 
-    print("\nGenerated Spec:")
-    print(spec)
+        if not file_id or not user_query:
+            return jsonify({"error": "file_id and query are required"}), 400
 
-    # Step 2: Generate chart
-    fig = generate_chart(df, spec)
+        # Load dataframe (reuse your earlier helper)
+        df = load_dataframe(file_id)
 
-    # Save chart (since no UI yet)
-    fig.write_html("output_chart.html")
+        # Step 1: Generate chart spec (LLM)
+        spec = generate_chart_spec(user_query, list(df.columns))
 
-    print("\nChart saved as output_chart.html")
+        # Step 2: Generate chart (Plotly)
+        fig = generate_chart(df, spec)
 
-    return spec
- except Exception as e:
-    print("Error in visualization pipeline:", str(e))
-    return None
+        #  Convert to HTML for inserting in frontend
+        chart_html = fig.to_html(full_html=False)
+
+        return jsonify({
+            "spec": spec,
+            "chart": chart_html
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 # this code block will run the data cleaning pipeline
 
 def run_cleaning_pipeline(file_path: str):

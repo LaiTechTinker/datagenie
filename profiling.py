@@ -1,18 +1,8 @@
 import pandas as pd
 from pathlib import Path
 
-def profile_data(file_path: str) -> dict:
+def profile_data(df:pd.DataFrame) -> dict:
  try:
-    ext= Path(file_path).suffix
-    
-    if ext == '.csv':
-            df = pd.read_csv(file_path, encoding='utf-8')
-    elif ext == '.xlsx':
-            df = pd.read_excel(file_path)
-    else:
-            ValueError("Unsupported file format. Please upload a CSV or Excel file.")
-            return None, None, None
-
     profile = {}
 
     # Basic info
