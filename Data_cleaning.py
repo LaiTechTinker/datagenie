@@ -112,32 +112,63 @@ def format_report_for_table(report: dict):
         })
 
     return table
-# cleaning the data based on the report generated
-def clean_dataframe(df: pd.DataFrame):
+# cleaning the data based on the report generated and user specified actions
+def clean_dataframe_with_actions(df: pd.DataFrame, actions: list):
     df = df.copy()
 
-    # 1. Remove duplicates
-    df = df.drop_duplicates()
+    for act in actions:
+        action_type = act.get("type")
 
-    # 2. Handle missing values
-    for col in df.columns:
-        if df[col].isnull().sum() > 0:
-            if df[col].dtype != "object":
+       
+        # HANDLE DUPLICATES
+      
+        if action_type == "duplicates":
+            if act.get("action") == "remove":
+                df = df.drop_duplicates()
+
+       
+        # HANDLE MISSING VALUES
+      
+        elif action_type == "missing_values":
+            col = act.get("column")
+            method = act.get("action")
+
+            if col not in df.columns:
+                continue
+
+            if method == "fill_median":
                 df[col].fillna(df[col].median(), inplace=True)
-            else:
+
+            elif method == "fill_mean":
+                df[col].fillna(df[col].mean(), inplace=True)
+
+            elif method == "fill_mode":
                 df[col].fillna(df[col].mode()[0], inplace=True)
 
-    # 3. Handle outlier
-    numeric_cols = df.select_dtypes(include="number").columns
+            elif method == "drop":
+                df = df.dropna(subset=[col])
 
-    for col in numeric_cols:
-        Q1 = df[col].quantile(0.25)
-        Q3 = df[col].quantile(0.75)
-        IQR = Q3 - Q1
+      
+        # HANDLE OUTLIERS
+        
+        elif action_type == "outliers":
+            col = act.get("column")
+            method = act.get("action")
 
-        lower = Q1 - 1.5 * IQR
-        upper = Q3 + 1.5 * IQR
+            if col not in df.columns:
+                continue
 
-        df[col] = df[col].clip(lower, upper)
+            Q1 = df[col].quantile(0.25)
+            Q3 = df[col].quantile(0.75)
+            IQR = Q3 - Q1
+
+            lower = Q1 - 1.5 * IQR
+            upper = Q3 + 1.5 * IQR
+
+            if method == "remove":
+                df = df[(df[col] >= lower) & (df[col] <= upper)]
+
+            elif method == "cap":
+                df[col] = df[col].clip(lower, upper)
 
     return df

@@ -1,17 +1,18 @@
 import pandas as pd
 import os
 import uuid
+import joblib
 from werkzeug.utils import secure_filename
-from flask import Flask,jsonify,request
+from flask import Flask,jsonify,request,send_file
 from flask_cors import CORS
 from pathlib import Path
 from Data_insights import generate_insights
 from profiling import profile_data,profile_to_text
 from visagent import generate_chart_spec
 from VisualCreator import  generate_chart
-from Data_cleaning import generate_cleaning_report,format_report_for_table
+from Data_cleaning import clean_dataframe_with_actions, generate_cleaning_report,format_report_for_table,clean_dataframe
 from Cleaningsum import explain_cleaning
-from Mlengine import run_automl
+from Mlengine import save_model, run_automl
 from Mlexplanation import explain_results
 
 # let initiate flask here
@@ -157,19 +158,101 @@ def analyze_data():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+# this code block will initiate downloading of the cleaned data
+@app.route("/clean", methods=["POST"])
+def clean():
+    try:
+        data = request.get_json()
+        file_id = data.get("file_id")
+        actions=data.get("actions",[])  # List of cleaning actions from frontend
+
+        df = load_dataframe(file_id)
+
+        # Clean data
+        cleaned_df = clean_dataframe_with_actions(df, actions)
+
+        # Save cleaned file
+        cleaned_filename = f"cleaned_{uuid.uuid4()}.csv"
+        cleaned_path = os.path.join("cleaned_files", cleaned_filename)
+
+        os.makedirs("cleaned_files", exist_ok=True)
+        cleaned_df.to_csv(cleaned_path, index=False)
+
+        # Return file for download
+        return send_file(
+            cleaned_path,
+            as_attachment=True,
+            download_name="cleaned_data.csv"
+        )
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 # this code block is for running the Ml pipeline
 
-def run_ml_pipeline(file_path: str, target_column: str):
-    df = pd.read_csv(file_path)
+@app.route("/train", methods=["POST"])
+def train():
+    try:
+        data = request.get_json()
 
-    result = run_automl(df, target_column)
+        file_id = data.get("file_id")
+        target = data.get("target")
+        models = data.get("models")
+        problem_override = data.get("problem_type")
 
-    explanation = explain_results(result)
+        df = load_dataframe(file_id)
 
-    return {
-        "result": result,
-        "explanation": explanation
-    }
+        result = run_automl(df, target, models, problem_override)
+
+        # Save best model
+        model_id, _ = save_model(result["best_model_obj"])
+
+        explanation = explain_results(result)
+
+        return jsonify({
+            "problem_type": result["problem_type"],
+            "best_model": result["best_model"],
+            "score": result["score"],
+            "top_features": result["top_features"],
+            "model_id": model_id,
+            "results_table": [
+                {
+                    "model": r["model"],
+                    "score": r["score"],
+                    "cv_score": r["cv_score"]
+                } for r in result["results"]
+            ],
+            "explanation": explanation
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route("/predict", methods=["POST"])
+def predict():
+    try:
+        data = request.get_json()
+
+        model_id = data.get("model_id")
+        input_data = data.get("input")
+
+        model_path = f"saved_models/{model_id}.pkl"
+
+        if not os.path.exists(model_path):
+            return jsonify({"error": "Model not found"}), 404
+
+        model = joblib.load(model_path)
+
+        df_input = pd.DataFrame([input_data])
+
+        prediction = model.predict(df_input)
+
+        return jsonify({
+            "prediction": prediction.tolist()
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # app server starting
 if __name__ =="__main__":
