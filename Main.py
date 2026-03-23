@@ -8,8 +8,8 @@ from pathlib import Path
 from Data_insights import generate_insights
 from profiling import profile_data,profile_to_text
 from visagent import generate_chart_spec
-from VisualCreator import apply_aggregation, generate_chart
-from Data_cleaning import generate_cleaning_report
+from VisualCreator import  generate_chart
+from Data_cleaning import generate_cleaning_report,format_report_for_table
 from Cleaningsum import explain_cleaning
 from Mlengine import run_automl
 from Mlexplanation import explain_results
@@ -133,18 +133,30 @@ def visualize():
         return jsonify({"error": str(e)}), 500
 # this code block will run the data cleaning pipeline
 
-def run_cleaning_pipeline(file_path: str):
-    df = pd.read_csv(file_path)
+@app.route("/analyze", methods=["POST"])
+def analyze_data():
+    try:
+        data = request.get_json()
+        file_id = data.get("file_id")
 
-    # Step 1: Detect issues
-    report = generate_cleaning_report(df)
+        df = load_dataframe(file_id)
 
-    # Step 2: AI explanation (optional)
-    explanation = explain_cleaning(report)
-    return {
-        "report": report,
-        "explanation": explanation
-    }
+        # Step 1: Generate report
+        report = generate_cleaning_report(df)
+
+        # Step 2: Convert to table format
+        table_data = format_report_for_table(report)
+
+        # Step 3: AI explanation (TEXT ONLY)
+        explanation = explain_cleaning(report)
+
+        return jsonify({
+            "table": table_data,     # for frontend table
+            "explanation": explanation  # plain text
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 # this code block is for running the Ml pipeline
 
 def run_ml_pipeline(file_path: str, target_column: str):

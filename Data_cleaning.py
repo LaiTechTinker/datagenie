@@ -78,3 +78,37 @@ def generate_cleaning_report(df: pd.DataFrame):
     }
 
     return report
+def format_report_for_table(report: dict):
+    table = []
+
+    # Missing values
+    for item in report["missing_values"]:
+        table.append({
+            "issue_type": "missing_values",
+            "column": item["column"],
+            "count": item["missing_count"],
+            "percentage": item["percentage"],
+            "suggestion": item["suggestion"]
+        })
+
+    # Duplicates
+    for item in report["duplicates"]:
+        table.append({
+            "issue_type": "duplicates",
+            "column": "ALL",
+            "count": item["count"],
+            "percentage": None,
+            "suggestion": item["suggestion"]
+        })
+
+    # Outliers
+    for item in report["outliers"]:
+        table.append({
+            "issue_type": "outliers",
+            "column": item["column"],
+            "count": item["count"],
+            "percentage": None,
+            "suggestion": item["suggestion"]
+        })
+
+    return table
