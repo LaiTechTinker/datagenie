@@ -112,3 +112,32 @@ def format_report_for_table(report: dict):
         })
 
     return table
+# cleaning the data based on the report generated
+def clean_dataframe(df: pd.DataFrame):
+    df = df.copy()
+
+    # 1. Remove duplicates
+    df = df.drop_duplicates()
+
+    # 2. Handle missing values
+    for col in df.columns:
+        if df[col].isnull().sum() > 0:
+            if df[col].dtype != "object":
+                df[col].fillna(df[col].median(), inplace=True)
+            else:
+                df[col].fillna(df[col].mode()[0], inplace=True)
+
+    # 3. Handle outlier
+    numeric_cols = df.select_dtypes(include="number").columns
+
+    for col in numeric_cols:
+        Q1 = df[col].quantile(0.25)
+        Q3 = df[col].quantile(0.75)
+        IQR = Q3 - Q1
+
+        lower = Q1 - 1.5 * IQR
+        upper = Q3 + 1.5 * IQR
+
+        df[col] = df[col].clip(lower, upper)
+
+    return df
