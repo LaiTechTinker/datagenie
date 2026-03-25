@@ -6,3 +6,8 @@ __pycache__/
 *.pyc
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+./saved_models/
+./cleaned_data/
+./uploads/
+# all pickle files
+*.pkl

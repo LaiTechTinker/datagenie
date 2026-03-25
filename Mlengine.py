@@ -14,41 +14,59 @@ import numpy as np
 # this is where feature engineering on the uploaded data will happen
 def preprocess_data(df: pd.DataFrame):
     df = df.copy()
-
     encoders = {}
 
-    #  Handle missing values
+    # Handle missing values
     for col in df.columns:
         if df[col].isnull().sum() > 0:
-            if df[col].dtype != "object":
-                df[col].fillna(df[col].median(), inplace=True)
+            if pd.api.types.is_numeric_dtype(df[col]):
+                df[col] = df[col].fillna(df[col].median())
             else:
-                df[col].fillna(df[col].mode()[0], inplace=True)
+                df[col] = df[col].fillna(df[col].mode()[0])
 
-    #  Feature engineering (dates)
-    for col in df.columns:
-        if "date" in col.lower():
+    # Date feature extraction
+    for col in list(df.columns):
+        if any(keyword in col.lower() for keyword in ["date", "time", "created", "timestamp"]):
             df[col] = pd.to_datetime(df[col], errors="coerce")
+
             df[f"{col}_year"] = df[col].dt.year
             df[f"{col}_month"] = df[col].dt.month
+            df[f"{col}_day"] = df[col].dt.day
+            df[f"{col}_dayofweek"] = df[col].dt.dayofweek
+            df[f"{col}_is_weekend"] = (df[col].dt.dayofweek >= 5).astype(int)
+
             df.drop(columns=[col], inplace=True)
 
-    #  Encode categorical
+    # Encode ALL non-numeric columns 
     for col in df.columns:
-        if df[col].dtype == "object":
+        if not pd.api.types.is_numeric_dtype(df[col]):
+            df[col] = df[col].astype(str).str.strip().str.lower()
+
             le = LabelEncoder()
-            df[col] = le.fit_transform(df[col].astype(str))
+            df[col] = le.fit_transform(df[col])
+
             encoders[col] = le
 
     return df, encoders
 # this code block detects if the problem is a classification or regression problem
 def detect_problem_type(df, target, override=None):
-    if override:
+   if override:
         return override
+   y = df[target]
 
-    if df[target].dtype == "object" or df[target].nunique() < 20:
+    # If it's text → classification
+   if y.dtype == "object":
         return "classification"
-    return "regression"
+
+    # If numeric but few unique values → classification
+   if y.nunique() < 15 and y.dtype != "float":
+        return "classification"
+
+    # If float → regression
+   if y.dtype in ["float64", "float32"]:
+        return "regression"
+
+   return "regression"
 
 
 # this code block will run the ML pipeline and return the results
@@ -112,17 +130,28 @@ def train_models(X_train, X_test, y_train, y_test, models, problem_type):
         })
 
     return results
-# this code block gets the top features for the model and returns them in a list
-def get_top_features(model, feature_names):
+# this code block gets the top features importance for the model and returns them 
+def get_top_features(model, feature_names, top_n=5):
+    # Handle pipeline
+    if hasattr(model, "named_steps"):
+        model = model.named_steps.get("model", model)
+
+    # Tree-based models
     if hasattr(model, "feature_importances_"):
         importances = model.feature_importances_
-        return sorted(
-            zip(feature_names, importances),
-            key=lambda x: x[1],
-            reverse=True
-        )[:5]
 
-    return []
+    # Linear models
+    elif hasattr(model, "coef_"):
+        importances = np.abs(model.coef_)
+
+    else:
+        return []
+
+    return sorted(
+        zip(feature_names, importances),
+        key=lambda x: x[1],
+        reverse=True
+    )[:top_n]
 # this run the entire ML pipeline and returns the results in a dictionary format that can be easily explained by the Mlexplanation module
 def run_automl(df, target, selected_models=None, problem_override=None):
     df_processed, _ = preprocess_data(df)
@@ -130,7 +159,7 @@ def run_automl(df, target, selected_models=None, problem_override=None):
     X = df_processed.drop(columns=[target])
     y = df_processed[target]
 
-    problem_type = detect_problem_type(df, target, problem_override)
+    problem_type = detect_problem_type(df_processed, target, problem_override)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42

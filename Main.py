@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import json
 import uuid
 import joblib
 from werkzeug.utils import secure_filename
@@ -10,9 +11,9 @@ from Data_insights import generate_insights
 from profiling import profile_data,profile_to_text
 from visagent import generate_chart_spec
 from VisualCreator import  generate_chart
-from Data_cleaning import clean_dataframe_with_actions, generate_cleaning_report,format_report_for_table,clean_dataframe
+from Data_cleaning import clean_dataframe_with_actions, generate_cleaning_report,format_report_for_table
 from Cleaningsum import explain_cleaning
-from Mlengine import save_model, run_automl
+from Mlengine import save_model, run_automl,preprocess_data
 from Mlexplanation import explain_results
 
 # let initiate flask here
@@ -20,10 +21,21 @@ app=Flask(__name__)
 CORS(app)
 # Folder to store uploads
 UPLOAD_FOLDER = "uploads"
-ALLOWED_EXTENSIONS = ["csv", "xlsx"]
+ALLOWED_EXTENSIONS = [".csv", ".xlsx"]
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-file_store={}  # In-memory store for file_id to file_path mapping
+STORE_PATH = "file_store.json"
+
+# Load store on startup
+if os.path.exists(STORE_PATH):
+    with open(STORE_PATH, "r") as f:
+        file_store = json.load(f)
+else:
+    file_store = {}
+
+def save_store():
+    with open(STORE_PATH, "w") as f:
+        json.dump(file_store, f)
 # this is an helper function for loading the dataframe based on file_id, this will be used in all pipelines to load the data for processing
 def load_dataframe(file_id):
     if file_id not in file_store:
@@ -70,7 +82,7 @@ def upload_file():
 
         # Store mapping
         file_store[file_id] = file_path
-
+        save_store()
         return jsonify({
             "message": "File uploaded successfully",
             "file_id": file_id
@@ -148,7 +160,7 @@ def analyze_data():
         # Step 2: Convert to table format
         table_data = format_report_for_table(report)
 
-        # Step 3: AI explanation (TEXT ONLY)
+        # # Step 3: AI explanation (TEXT ONLY)
         explanation = explain_cleaning(report)
 
         return jsonify({
@@ -171,7 +183,6 @@ def clean():
 
         # Clean data
         cleaned_df = clean_dataframe_with_actions(df, actions)
-
         # Save cleaned file
         cleaned_filename = f"cleaned_{uuid.uuid4()}.csv"
         cleaned_path = os.path.join("cleaned_files", cleaned_filename)
@@ -226,6 +237,8 @@ def train():
         })
 
     except Exception as e:
+      
+        print(f"Error during training: {e}")
         return jsonify({"error": str(e)}), 500
     
 @app.route("/predict", methods=["POST"])
@@ -243,7 +256,11 @@ def predict():
 
         model = joblib.load(model_path)
 
+        # Convert input to DataFrame
         df_input = pd.DataFrame([input_data])
+
+        #  Apply SAME preprocessing
+        df_input, _ = preprocess_data(df_input)
 
         prediction = model.predict(df_input)
 
@@ -253,7 +270,6 @@ def predict():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 # app server starting
 if __name__ =="__main__":
     app.run(debug=True)

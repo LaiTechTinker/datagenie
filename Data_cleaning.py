@@ -119,16 +119,12 @@ def clean_dataframe_with_actions(df: pd.DataFrame, actions: list):
     for act in actions:
         action_type = act.get("type")
 
-       
         # HANDLE DUPLICATES
-      
         if action_type == "duplicates":
             if act.get("action") == "remove":
                 df = df.drop_duplicates()
 
-       
         # HANDLE MISSING VALUES
-      
         elif action_type == "missing_values":
             col = act.get("column")
             method = act.get("action")
@@ -137,20 +133,18 @@ def clean_dataframe_with_actions(df: pd.DataFrame, actions: list):
                 continue
 
             if method == "fill_median":
-                df[col].fillna(df[col].median(), inplace=True)
+                df[col] = df[col].fillna(df[col].median())
 
             elif method == "fill_mean":
-                df[col].fillna(df[col].mean(), inplace=True)
+                df[col] = df[col].fillna(df[col].mean())
 
             elif method == "fill_mode":
-                df[col].fillna(df[col].mode()[0], inplace=True)
+                df[col] = df[col].fillna(df[col].mode()[0])
 
             elif method == "drop":
                 df = df.dropna(subset=[col])
 
-      
         # HANDLE OUTLIERS
-        
         elif action_type == "outliers":
             col = act.get("column")
             method = act.get("action")
