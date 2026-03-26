@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Profiling Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh; padding: 20px; line-height: 1.6; color: #333; 
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 40px; color: #2c3e50; font-size: 2.5rem; font-weight: 300; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-bottom: 30px; }
+        .card { background: white; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+        .metric-card { text-align: center; }
+        .metric-value { font-size: 2.5rem; font-weight: 700; color: #3498db; margin-bottom: 5px; }
+        .metric-label { color: #7f8c8d; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
+        .section { grid-column: 1 / -1; }
+        .section h2 { color: #2c3e50; margin-bottom: 20px; font-size: 1.8rem; display: flex; align-items: center; gap: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+        th { background: linear-gradient(135deg, #3498db, #2980b9); color: white; padding: 15px; text-align: left; font-weight: 600; cursor: pointer; transition: background 0.3s; }
+        th:hover { background: linear-gradient(135deg, #2980b9, #3498db); }
+        td { padding: 12px 15px; border-bottom: 1px solid #ecf0f1; transition: background 0.2s; }
+        tr:hover td { background: #f8f9fa; }
+        .sortable { position: relative; }
+        .sort-asc::after { content: '▲'; opacity: 1; }
+        .sort-desc::after { content: '▼'; opacity: 1; }
+        select { padding: 10px 15px; border: 2px solid #bdc3c7; border-radius: 8px; background: white; font-size: 1rem; cursor: pointer; }
+        select:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); }
+        .stats-container { display: flex; gap: 20px; flex-wrap: wrap; }
+        .stat-item { flex: 1; min-width: 200px; background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #3498db; }
+        .stat-label { color: #7f8c8d; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .stat-value { font-size: 1.4rem; font-weight: 600; color: #2c3e50; }
+        .corr-cell { font-weight: 500; text-align: center; padding: 10px; }
+        .corr-strong { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; font-weight: 700; }
+        .corr-medium { background: linear-gradient(135deg, #f39c12, #e67e22); color: white; }
+        .corr-weak { background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; }
+        .insight-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin: 0 10px 10px 0; }
+        .badge-good { background: #d5f4e6; color: #27ae60; }
+        .badge-warning { background: #fef5e7; color: #f39c12; }
+        .categorical-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
+        @media (max-width: 768px) { body { padding: 10px; } h1 { font-size: 2rem; } .stats-container, .grid { flex-direction: column; grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Data Profiling Dashboard</h1>
+        <div class="grid">
+            <div class="card metric-card">
+                <div class="metric-value" id="rows">1,338</div>
+                <div class="metric-label">Rows</div>
+            </div>
+            <div class="card metric-card">
+                <div class="metric-value" id="cols">7</div>
+                <div class="metric-label">Columns</div>
+            </div>
+            <div class="card metric-card">
+                <div class="metric-value" id="totalMissing">0</div>
+                <div class="metric-label">Perfect Data</div>
+            </div>
+        </div>
+        <div class="section card">
+            <h2>📋 Columns</h2>
+            <table id="columnsTable">
+                <thead><tr><th class="sortable" data-sort="name">Name</th><th class="sortable" data-sort="type">Type</th><th class="sortable" data-sort="unique">Unique</th><th class="sortable" data-sort="missing">Missing</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="section card">
+            <h2>📈 Summary Stats</h2>
+            <div><label>Column: <select id="colSelect"><option value="">Select...</option></select></label></div>
+            <div id="stats"></div>
+        </div>
+        <div class="section card">
+            <h2>⚠️ Insights</h2>
+            <div id="insights"></div>
+        </div>
+        <div class="section card">
+            <h2>🏷️ Categories</h2>
+            <div id="cats" class="categorical-grid"></div>
+        </div>
+        <div class="section card">
+            <h2>🔗 Correlations</h2>
+            <table id="corrTable"><thead></thead><tbody></tbody></table>
+        </div>
+    </div>
+    <script>
+        const data = {"profile":{"columns":["age","sex","bmi","children","smoker","region","charges"],"dtypes":{"age":"int64","bmi":"float64","charges":"float64","children":"int64","region":"str","sex":"str","smoker":"str"},"missing_values":{"age":0,"bmi":0,"charges":0,"children":0,"region":0,"sex":0,"smoker":0},"shape":[1338,7],"summary_stats":{"age":{"25%":27.0,"50%":39.0,"75%":51.0,"count":1338.0,"freq":"","max":64.0,"mean":39.20702541106129,"min":18.0,"std":14.049960379216154,"top":"","unique":""},"bmi":{"25%":26.29625,"50%":30.4,"75%":34.69375,"count":1338.0,"freq":"","max":53.13,"mean":30.66339686098655,"min":15.96,"std":6.098186911679014,"top":"","unique":""},"charges":{"25%":4740.28715,"50%":9382.033,"75%":16639.912515,"count":1338.0,"freq":"","max":63770.42801,"mean":13270.422265141257,"min":1121.8739,"std":12110.011236694001,"top":"","unique":""},"children":{"25%":0.0,"50%":1.0,"75%":2.0,"count":1338.0,"freq":"","max":5.0,"mean":1.0949177877429,"min":0.0,"std":1.205492739781914,"top":"","unique":""},"region":{"25%":"","50%":"","75%":"","count":1338,"freq":364,"max":"","mean":"","min":"","std":"","top":"southeast","unique":4},"sex":{"25%":"","50%":"","75%":"","count":1338,"freq":676,"max":"","mean":"","min":"","std":"","top":"male","unique":2},"smoker":{"25%":"","50%":"","75%":"","count":1338,"freq":1064,"max":"","mean":"","min":"","std":"","top":"no","unique":2}},"unique_values":{"age":47,"bmi":548,"charges":1337,"children":6,"region":4,"sex":2,"smoker":2},"correlation":{"age":{"age":1.0,"bmi":0.1092718815485351,"charges":0.299008193330648,"children":0.04246899855884958},"bmi":{"age":0.1092718815485351,"bmi":1.0,"charges":0.19834096883362912,"children":0.012758900820673994},"charges":{"age":0.299008193330648,"bmi":0.19834096883362912,"charges":1.0,"children":0.06799822684790495},"children":{"age":0.04246899855884958,"bmi":0.012758900820673994,"charges":0.06799822684790495,"children":1.0}}}};
+        let p = data.profile;
+        let sortDir = {};
+        
+        document.addEventListener('DOMContentLoaded',()=>{
+            document.getElementById('rows').textContent = p.shape[0].toLocaleString();
+            document.getElementById('cols').textContent = p.shape[1];
+            let tm = Object.values(p.missing_values).reduce((a,b)=>a+b,0);
+            document.getElementById('totalMissing').textContent = tm;
+            
+            let tb = document.querySelector('#columnsTable tbody');
+            p.columns.forEach(c=>{
+                let r = tb.insertRow();
+                r.innerHTML = `<td onclick="selCol('${c}')">${c}</td><td>${p.dtypes[c]}</td><td>${p.unique_values[c]}</td><td>${p.missing_values[c]}</td>`;
+            });
+            
+            let s = document.getElementById('colSelect');
+            p.columns.forEach(c=>{let o = document.createElement('option'); o.value=c; o.textContent=c; s.appendChild(o);});
+            s.onchange = showStats;
+            
+            document.querySelectorAll('th.sortable').forEach(th=>th.onclick=()=>sortTbl(th.dataset.sort,th));
+            
+            showInsights();
+            showCats();
+            showCorr();
+        });
+        
+        function selCol(c) { document.getElementById('colSelect').value = c; showStats(); }
+        function fmt(v) { return v===''||v===null||v===undefined ? 'N/A' : (typeof v==='number' ? (Number.isInteger(v)?v:v.toFixed(2)) : v); }
+        
+        function showStats() {
+            let c = document.getElementById('colSelect').value, cont = document.getElementById('stats');
+            if (!c) { cont.style.display = 'none'; return; }
+            cont.style.display = 'block';
+            let st = p.summary_stats[c];
+            cont.innerHTML = `<div class="stats-container">
+                <div class="stat-item"><div class="stat-label">Mean</div><div class="stat-value">${fmt(st.mean)}</div></div>
+                <div class="stat-item"><div class="stat-label">Std</div><div class="stat-value">${fmt(st.std)}</div></div>
+                <div class="stat-item"><div class="stat-label">Min</div><div class="stat-value">${fmt(st.min)}</div></div>
+                <div class="stat-item"><div class="stat-label">Max</div><div class="stat-value">${fmt(st.max)}</div></div>
+                <div class="stat-item"><div class="stat-label">Median</div><div class="stat-value">${fmt(st['50%'])}</div></div>
+            </div>`;
+        }
+        
+        function showInsights() {
+            let cont = document.getElementById('insights'), html = '';
+            let tm = Object.values(p.missing_values).reduce((a,b)=>a+b,0);
+            if (tm===0) html += '<span class="insight-badge badge-good">✅ No missing values</span>';
+            p.columns.forEach(c=>{
+                let up = (p.unique_values[c]/p.shape[0])*100;
+                if (up>10) html += `<span class="insight-badge badge-warning">⚠️ High cardinality: ${c}</span>`;
+            });
+            cont.innerHTML = html || '<p style="color:#27ae60;font-style:italic;">Perfect dataset!</p>';
+        }
+        
+        function showCats() {
+            let cont = document.getElementById('cats');
+            cont.innerHTML = '';
+            p.columns.forEach(c=>{
+                let st = p.summary_stats[c];
+                if (st.freq && st.top) {
+                    let card = document.createElement('div'); card.className = 'card';
+                    card.innerHTML = `<h4>${c}</h4>
+                        <div class="stat-item"><div class="stat-label">Top</div><div class="stat-value">${st.top}</div></div>
+                        <div class="stat-item"><div class="stat-label">Freq</div><div class="stat-value">${st.freq}</div></div>
+                        <div class="stat-item"><div class="stat-label">Unique</div><div class="stat-value">${p.unique_values[c]}</div></div>`;
+                    cont.appendChild(card);
+                }
+            });
+        }
+        
+        function showCorr() {
+            let thead = document.querySelector('#corrTable thead tr'), tbody = document.querySelector('#corrTable tbody');
+            let nc = p.columns.filter(c=>['int64','float64'].includes(p.dtypes[c]));
+            thead.innerHTML = '<th></th>'+nc.map(c=>`<th>${c}</th>`).join('');
+            nc.forEach(r=>{
+                let row = tbody.insertRow();
+                row.innerHTML = `<td style="font-weight:600;">${r}</td>`;
+                nc.forEach(col=>{
+                    let cv = p.correlation[r]?.[col] || 0;
+                    let cell = row.insertCell();
+                    cell.className = 'corr-cell';
+                    cell.textContent = cv.toFixed(2);
+                    let av = Math.abs(cv);
+                    if (av>=0.7) cell.classList.add('corr-strong');
+                    else if (av>=0.4) cell.classList.add('corr-medium');
+                    else if (av>=0.2) cell.classList.add('corr-weak');
+                });
+            });
+        }
+        
+        function sortTbl(col, th) {
+            let tbody = document.querySelector('#columnsTable tbody'), rows = Array.from(tbody.rows);
+            let dir = sortDir[col] === 'asc' ? 'desc' : 'asc';
+            sortDir[col] = dir;
+            document.querySelectorAll('.sortable').forEach(t=>t.classList.remove('sort-asc','sort-desc'));
+            th.classList.add('sort-'+dir);
+            rows.sort((a,b)=>{
+                let i = Array.from(th.parentNode.children).indexOf(th);
+                let av = a.cells[i].textContent, bv = b.cells[i].textContent;
+                if (!isNaN(av) && !isNaN(bv)) { av=parseFloat(av); bv=parseFloat(bv); }
+                return av < bv ? (dir==='asc'?-1:1) : (av > bv ? (dir==='asc'?1:-1):0);
+            });
+            rows.forEach(r=>tbody.appendChild(r));
+        }
+    </script>
+</body>
+</html>

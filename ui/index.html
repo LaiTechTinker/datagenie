@@ -87,27 +87,159 @@
 
         <!-- Profiling Section -->
         <section id="profile" class="page-section">
-            <h1>Data Profiling</h1>
-            <button id="generate-profile" class="primary-btn">Generate Profile</button>
-            <div id="profile-results" class="results-container"></div>
+            <h1><i class="fas fa-chart-bar"></i> Data Profiling</h1>
+            <button id="generate-profile" class="primary-btn"><i class="fas fa-sync-alt"></i> Generate Profile</button>
+            
+            <!-- AI Insights -->
+            <div class="ai-insights-card card" style="margin: 30px 0;">
+                <h3><i class="fas fa-lightbulb"></i> AI Insights</h3>
+                <div id="ai-insights" style="background: #f8f9fa; padding: 20px; border-radius: 12px; min-height: 100px; position: relative;"></div>
+                <button id="copy-insights" class="copy-btn" style="position: absolute; top: 15px; right: 15px; background: #3498db; color: white; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer;"><i class="fas fa-copy"></i></button>
+            </div>
+            
+            <!-- Profiling Dashboard -->
+            <div class="profiling-dashboard" style="padding: 30px 0;">
+                <div class="grid" style="gap: 30px;">
+                    <div class="card metric-card" style="padding: 40px;">
+                        <div class="metric-value" id="prof-rows">-</div>
+                        <div class="metric-label">Rows</div>
+                    </div>
+                    <div class="card metric-card" style="padding: 40px;">
+                        <div class="metric-value" id="prof-cols">-</div>
+                        <div class="metric-label">Columns</div>
+                    </div>
+                    <div class="card metric-card" style="padding: 40px;">
+                        <div class="metric-value" id="prof-missing">-</div>
+                        <div class="metric-label" id="prof-missing-label">Total Missing</div>
+                    </div>
+                </div>
+                
+                <div class="section card" style="margin: 30px 0;">
+                    <h2><i class="fas fa-list"></i> Columns Information</h2>
+                    <table id="prof-columnsTable" style="margin-top: 20px;">
+                        <thead><tr><th class="sortable" data-sort="name">Name</th><th class="sortable" data-sort="type">Type</th><th class="sortable" data-sort="unique">Unique</th><th class="sortable" data-sort="missing">Missing</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                
+                <div class="section-grid" style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px;">
+                    <div class="card">
+                        <h3><i class="fas fa-calculator"></i> Summary Stats</h3>
+                        <select id="prof-colSelect" style="width: 100%; margin-top: 15px;"><option value="">Select column...</option></select>
+                        <div id="prof-stats" style="margin-top: 20px;"></div>
+                    </div>
+                    <div class="card">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Quality Insights</h3>
+                        <div id="prof-insights" style="margin-top: 20px;"></div>
+                    </div>
+                </div>
+                
+                <div class="grid" style="gap: 30px; margin-top: 30px;">
+                    <div class="card">
+                        <h3><i class="fas fa-tags"></i> Categorical Summary</h3>
+                        <div id="prof-cats" style="display: grid; gap: 15px; margin-top: 20px;"></div>
+                    </div>
+                    <div class="card">
+                        <h3><i class="fas fa-project-diagram"></i> Correlation Matrix</h3>
+                        <table id="prof-corrTable" style="margin-top: 20px;"><thead></thead><tbody></tbody></table>
+                    </div>
+                </div>
+            </div>
         </section>
+
 
         <!-- Cleaning Section -->
         <section id="cleaning" class="page-section">
-            <h1>Cleaning Suggestions</h1>
-            <button id="analyze-issues" class="primary-btn">Analyze Data Issues</button>
-            <div id="cleaning-suggestions" class="suggestions-container"></div>
-        </section>
-
-        <!-- Visualization Section -->
-        <section id="visualize" class="page-section">
-            <h1>AI Visualization Chat</h1>
-            <div id="chat-messages" class="chat-container"></div>
-            <div class="chat-input-container">
-                <input type="text" id="chat-input" placeholder="Ask me to create charts like 'show sales over time'...">
-                <button id="send-chat" class="primary-btn"><i class="fas fa-paper-plane"></i></button>
+            <h1><i class="fas fa-broom"></i> Data Cleaning</h1>
+            <button id="analyze-issues" class="primary-btn"><i class="fas fa-search"></i> Analyze Data Quality</button>
+            
+            <!-- AI Cleaning Explanation -->
+            <div class="ai-insights-card card" style="margin: 30px 0;">
+                <h3><i class="fas fa-lightbulb"></i> AI Cleaning Advice</h3>
+                <div id="clean-ai-explain" style="background: #f8f9fa; padding: 20px; border-radius: 12px; min-height: 100px; position: relative;"></div>
+                <button id="copy-clean-explain" class="copy-btn" style="position: absolute; top: 15px; right: 15px; background: #3498db; color: white; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer;"><i class="fas fa-copy"></i></button>
+            </div>
+            
+            <!-- Cleaning Dashboard -->
+            <div class="cleaning-dashboard" style="padding: 30px 0;">
+                <div class="grid" style="gap: 30px;">
+                    <div class="card metric-card" style="padding: 40px;">
+                        <div class="metric-value" id="clean-total-issues">-</div>
+                        <div class="metric-label">Total Issues</div>
+                    </div>
+                    <div class="card metric-card" style="padding: 40px;">
+                        <div class="metric-value" id="clean-missing-count">-</div>
+                        <div class="metric-label">Missing Values</div>
+                    </div>
+                    <div class="card metric-card" style="padding: 40px;">
+                        <div class="metric-value" id="clean-duplicates">-</div>
+                        <div class="metric-label">Duplicates</div>
+                    </div>
+                    <div class="card metric-card" style="padding: 40px;">
+                        <div class="metric-value" id="clean-outliers">-</div>
+                        <div class="metric-label">Outliers</div>
+                    </div>
+                </div>
+                
+                <div class="section card" style="margin: 30px 0;">
+                    <h2><i class="fas fa-exclamation-triangle"></i> Issues Table</h2>
+                    <table id="clean-issues-table" style="margin-top: 20px;">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="issue_type">Issue Type</th>
+                                <th class="sortable" data-sort="column">Column</th>
+                                <th class="sortable" data-sort="count">Count</th>
+                                <th>Percentage</th>
+                                <th>Suggestion</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                
+                <div class="grid" style="gap: 30px; margin-top: 30px;">
+                    <div class="card" style="flex: 1;">
+                        <h3><i class="fas fa-tasks"></i> Quick Actions</h3>
+                        <div style="margin-top: 20px;">
+                            <button class="secondary-btn" onclick="applyAllAutoFixes()" style="margin-right: 10px;"><i class="fas fa-magic"></i> Auto Fix All</button>
+                            <button class="secondary-btn" onclick="downloadCleanedData()" style="background: #27ae60; color: white;"><i class="fas fa-download"></i> Download Cleaned</button>
+                        </div>
+                    </div>
+                    <div class="card" style="flex: 2;">
+                        <h3><i class="fas fa-list-ul"></i> Selected Actions Summary</h3>
+                        <div id="clean-actions-summary" style="margin-top: 20px; min-height: 80px; background: #f8f9fa; padding: 20px; border-radius: 12px;">No actions selected</div>
+                    </div>
+                </div>
             </div>
         </section>
+
+
+        <!-- Visualization Section -->
+<section id="visualize" class="page-section">
+            <h1><i class="fas fa-chart-line"></i> AI Visualization Studio</h1>
+            <button id="load-columns-btn" class="primary-btn" style="margin-bottom: 20px;"><i class="fas fa-sync"></i> Load Columns</button>
+            
+            <!-- Controls -->
+            <div class="controls" style="margin-bottom: 30px; padding: 20px; background: white; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
+                <input type="text" id="viz-query-input" placeholder="Describe your chart: 'bar age vs charges' or 'line trend by region'" style="flex: 1; min-width: 300px; padding: 15px 20px; border: 2px solid #e9ecef; border-radius: 12px; font-size: 1.1rem;">
+                <button onclick="generateVizChart()" class="btn btn-primary" style="padding: 15px 30px; font-size: 1.1rem;"><i class="fas fa-magic"></i> Generate</button>
+                <button onclick="clearVizChat()" class="btn btn-secondary" style="padding: 15px 30px;"><i class="fas fa-trash"></i> Clear</button>
+            </div>
+            
+            <!-- Chat History -->
+            <div id="viz-chat-messages" class="chat-container" style="height: 400px;"></div>
+            
+            <!-- Recent Charts Gallery -->
+            <div class="recent-charts" style="margin-top: 30px;">
+                <h3 style="grid-column: 1 / -1; margin-bottom: 20px; color: #2c3e50; font-size: 1.5rem;">📈 Recent Charts</h3>
+                <div id="viz-recent-charts"></div>
+            </div>
+        </section>
+
+        <!-- Plotly CDN -->
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
 
         <!-- ML Section -->
         <section id="ml" class="page-section">
