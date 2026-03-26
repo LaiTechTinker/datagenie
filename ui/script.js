@@ -1,7 +1,7 @@
 // Data Genie Frontend - Vanilla JS Logic & API Integration
 
 // Configuration
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = 'http://localhost:5000';
 let currentDatasetId = null;
 let datasetInfo = null;
 
@@ -118,7 +118,7 @@ async function uploadFile() {
         if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
 
         const data = await response.json();
-        currentDatasetId = data.dataset_id;
+        currentDatasetId = data.file_id;
         localStorage.setItem('datasetId', currentDatasetId);
         
         hideLoading();
@@ -137,7 +137,14 @@ function loadDatasetInfo() {
     if (!currentDatasetId) return;
 
     // Simulate fetching info or call /summary API
-    fetch(`${API_BASE}/summary?dataset_id=${currentDatasetId}`)
+    fetch(`${API_BASE}/summary`,{
+        method: 'POST',
+             headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ file_id: currentDatasetId })
+
+    })
         .then(res => res.json())
         .then(data => {
             datasetInfo = data;
@@ -182,22 +189,29 @@ function initSectionButtons() {
 
 // Data Profiling
 async function generateProfile() {
+    // const currentDatasetId=localStorage.getItem('datasetId')
     if (!currentDatasetId) return showToast('Please upload a dataset first', 'error');
     
     showLoading('Generating profile...');
     
     try {
-        const response = await fetch(`${API_BASE}/profile?dataset_id=${currentDatasetId}`, {
-            method: 'POST'
+        const response = await fetch(`${API_BASE}/profiling`, {
+            method: 'POST',
+              headers: {
+        'Content-Type': 'application/json'
+    },
+   body: JSON.stringify({ file_id: currentDatasetId })
         });
         const data = await response.json();
+        console.log(data)
         displayProfileResults(data);
         hideLoading();
         showToast('Profile generated!', 'success');
     } catch (error) {
         hideLoading();
         showToast(`Error: ${error.message}`, 'error');
-        displayProfileResults(mockProfileData());
+        return {}
+        // displayProfileResults(mockProfileData());
     }
 }
 
@@ -209,7 +223,7 @@ function displayProfileResults(data) {
                 <tr><th>Metric</th><th>Value</th></tr>
             </thead>
             <tbody>
-                ${Object.entries(data.summary_stats || {}).map(([key, val]) => 
+                ${Object.entries(data.profile || {}).map(([key, val]) => 
                     `<tr><td>${key}</td><td>${val}</td></tr>`
                 ).join('')}
             </tbody>
@@ -233,9 +247,13 @@ async function analyzeCleaning() {
     showLoading('Analyzing data quality...');
     
     try {
-        const response = await fetch(`${API_BASE}/cleaning?dataset_id=${currentDatasetId}`, {
-            method: 'POST'
-        });
+        const response = await fetch(`${API_BASE}/analyze`, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ file_id: currentDatasetId })
+})
         const suggestions = await response.json();
         displayCleaningSuggestions(suggestions);
         hideLoading();

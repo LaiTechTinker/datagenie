@@ -55,6 +55,15 @@ def send_ui():
     return jsonify({
         "message":"hello brother"
     })
+@app.route("/summary",methods=["POST"])
+def get_sum():
+    data=request.get_json()
+    file_id=data.get("file_id")
+    df=load_dataframe(file_id)
+    return jsonify({
+        "rows":df.shape[0],
+        "columns":df.shape[1]
+    })
 @app.route("/upload", methods=["POST"])
 def upload_file():
     try:
@@ -160,12 +169,12 @@ def analyze_data():
         # Step 2: Convert to table format
         table_data = format_report_for_table(report)
 
-        # # Step 3: AI explanation (TEXT ONLY)
+        # Step 3: AI explanation (TEXT ONLY)
         explanation = explain_cleaning(report)
 
         return jsonify({
             "table": table_data,     # for frontend table
-            "explanation": explanation  # plain text
+            # "explanation": explanation  # plain text
         })
 
     except Exception as e:
