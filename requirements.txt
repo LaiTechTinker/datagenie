@@ -15,3 +15,5 @@ flask
 flask-cors
 plotly
 reportlab
+langchain-openai
+langchain-groq

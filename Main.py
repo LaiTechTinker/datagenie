@@ -143,7 +143,7 @@ def visualize():
         # Step 2: Generate chart (Plotly)
         fig = generate_chart(df, spec)
 
-        #  Convert to HTML for inserting in frontend
+        #  Convert to HTML for inserting in frontendP
         chart_html = fig.to_html(full_html=False)
 
         return jsonify({
