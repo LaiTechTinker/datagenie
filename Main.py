@@ -16,6 +16,7 @@ from Cleaningsum import explain_cleaning
 from Mlengine import save_model, run_automl,preprocess_data
 from Mlexplanation import explain_results
 from pdf_generator import generate_pdf_report
+from Chat_handler import chat_with_report
 
 # let initiate flask here
 app=Flask(__name__)
@@ -27,6 +28,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 STORE_PATH = "file_store.json"
 report_store = {}  # temporary storage
+chat_memory = {} #in-memory chat history, can be enhanced to persistent if needed
 
 # Load store on startup
 if os.path.exists(STORE_PATH):
@@ -193,6 +195,50 @@ def download_report(report_id):
             as_attachment=True,
             download_name="data_report.pdf"
         )
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+# this code block will handle the chat interactions with the generated report, it will take the user question and the report text as input and return the response from the LLM based on the report and the chat history
+@app.route("/chat-report", methods=["POST"])
+def chat_report():
+    try:
+        data = request.get_json()
+
+        report_id = data.get("report_id")
+        user_message = data.get("message")
+
+        if not report_id or not user_message:
+            return jsonify({"error": "report_id and message required"}), 400
+
+        # Check report exists
+        if report_id not in report_store:
+            return jsonify({"error": "Invalid report_id"}), 404
+
+        report_text = report_store[report_id]["report_text"]
+
+        # Initialize memory if not exists
+        if report_id not in chat_memory:
+            chat_memory[report_id] = []
+
+        memory = chat_memory[report_id]
+
+        # Get AI response
+        ai_response = chat_with_report(
+            report_text,
+            user_message,
+            memory
+        )
+
+        # Save to memory
+        memory.append({"role": "user", "content": user_message})
+        memory.append({"role": "assistant", "content": ai_response})
+
+        # Limit memory (last 10 messages)
+        chat_memory[report_id] = memory[-10:]
+
+        return jsonify({
+            "response": ai_response
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
