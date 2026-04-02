@@ -1,3 +1,4 @@
+from langchain_core.prompts import PromptTemplate
 from Prompts_file import chat_prompt
 from Data_insights import initiatellm
 llm =initiatellm()
@@ -15,9 +16,12 @@ def format_memory(memory_list):
 def chat_with_report(report_text, user_question, memory):
 
     history_text = format_memory(memory)
-    chat_prompt = chat_prompt.format(report_text=report_text, chat_history=history_text, user_question=user_question)
+    prompt = PromptTemplate(
+        input_variables=["report_text", "chat_history", "user_question"],
+        template=chat_prompt
+    )
 
-    chain = chat_prompt | llm
+    chain = prompt | llm
 
    
 
