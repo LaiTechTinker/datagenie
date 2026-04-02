@@ -16,6 +16,8 @@ from Mlexplanation import explain_results
 from pdf_generator import generate_pdf_report
 from Chat_handler import chat_with_report
 from service.dataloader import get_columns,get_preview
+from service.profiller import profile_data2
+from service.suggestion import generate_suggestions
 # let initiate flask here
 app=Flask(__name__)
 CORS(app)
@@ -247,13 +249,21 @@ def preview_data():
         data = request.get_json()
         file_id = data.get("file_id")
         df = load_dataframe(file_id)
-        Datasets[file_id]=df #store in memory for quick access in future, can be enhanced to use a caching mechanism or database for larger datasets
+        profile=profile_data2(df)
+        Datasets[file_id]={
+            "df":df,
+            "profile":profile
+        } #store in memory for quick access in future, can be enhanced to use a caching mechanism or database for larger datasets
         preview = get_preview(df)
         columns=get_columns(df)
+        suggestions=generate_suggestions(profile)
 
         return jsonify({
-            "preview": preview,
-            "columns": columns
+            "dataset_id": file_id,
+            "columns": get_columns(df),
+            "preview": get_preview(df),
+            "profile": profile,
+            "suggestions": suggestions
         })
 
     except Exception as e:
