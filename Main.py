@@ -18,6 +18,7 @@ from Chat_handler import chat_with_report
 from service.dataloader import get_columns,get_preview
 from service.profiller import profile_data2
 from service.suggestion import generate_suggestions
+from service.Vizagent import generate_chart_spec
 # let initiate flask here
 app=Flask(__name__)
 CORS(app)
@@ -270,6 +271,30 @@ def preview_data():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/visualize", methods=["POST"])
+def visualize():
+    try:
+        data = request.json
+
+        file_id = data.get("file_id")
+        user_prompt = data.get("prompt")
+
+        if file_id not in Datasets:
+            return jsonify({"error": "Invalid file_id"}), 400
+
+        dataset = Datasets[file_id]
+        df = dataset["df"]
+        profile = dataset["profile"]
+
+        # LLM generates chart spec
+        chart_spec = generate_chart_spec(user_prompt, profile)
+
+        return jsonify({
+            "chart_spec": chart_spec
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 

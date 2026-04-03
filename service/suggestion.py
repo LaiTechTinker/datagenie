@@ -4,17 +4,17 @@ def generate_suggestions(profile: dict, max_suggestions: int = 6):
     numeric_cols = profile["column_types"]["numeric"]
     categorical_cols = profile["column_types"]["categorical"]
 
-    #  1. Aggregation suggestions
+    #   Aggregation suggestions
     for num in numeric_cols:
         for cat in categorical_cols:
             suggestions.append(f"Average {num} by {cat}")
             suggestions.append(f"Total {num} by {cat}")
 
-    # 🔹 2. Count suggestions
+    #  Count suggestions
     for cat in categorical_cols:
         suggestions.append(f"Count of records by {cat}")
 
-    # 🔹 3. Distribution suggestions
+    #  Distribution suggestions
     for num in numeric_cols:
         suggestions.append(f"Distribution of {num}")
 

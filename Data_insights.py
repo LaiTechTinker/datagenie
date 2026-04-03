@@ -19,7 +19,7 @@ def initiatellm():
 )
      return llm
     except Exception as e:
-     print(f"Error message:{e.message}")
+     print(f"Error message:{str(e)}")
      return None
 llm=initiatellm()
 def generate_insights(summary:str)->str:
