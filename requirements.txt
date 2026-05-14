@@ -1,0 +1,16 @@
+flask==3.0.3
+flask-cors==4.0.1
+flask-socketio==5.3.6
+eventlet==0.36.1
+python-dotenv==1.0.1
+pymongo==4.8.0
+bcrypt==4.2.0
+pyjwt==2.9.0
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.5.1
+openpyxl==3.1.5
+python-magic==0.4.27
+langchain-groq
+langchain>=0.2.0
+langchain-community
