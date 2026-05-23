@@ -37,9 +37,9 @@ def create_app() -> Flask:
 
     register_error_handlers(app)
 
-    @app.get("/api/health")
+    @app.get("/")
     def health():
-        return jsonify(status="ok")
+         return {"message": "API is running"}
 
     socketio.init_app(app)
     register_training_namespace(socketio)
