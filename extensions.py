@@ -2,7 +2,7 @@
 from flask_socketio import SocketIO
 from pymongo import MongoClient
 
-socketio = SocketIO(cors_allowed_origins="*", async_mode="eventlet")
+socketio = SocketIO(cors_allowed_origins="*", async_mode="gevent")
 
 # Mongo handle is set by app.py during init_extensions().
 mongo_client: MongoClient | None = None

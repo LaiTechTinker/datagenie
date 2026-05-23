@@ -1,6 +1,6 @@
 """Application entrypoint. Run with `python app.py`."""
-import eventlet
-eventlet.monkey_patch()  # noqa: E402  must run before other imports
+from gevent import monkey
+monkey.patch_all()
 
 import os
 from flask import Flask, jsonify
