@@ -125,6 +125,9 @@ _CANNED = [
 ]
 
 def send_pdf_file(report_id: str):
+    summary=None
+    insights=None
+    issues=None
     r = report_model.get(report_id)
     if not r:
         raise ApiError("Report not found for this user", 404)

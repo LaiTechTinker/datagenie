@@ -68,27 +68,10 @@ regressors = [
 classifiers = [
         LogisticRegression, 
         RandomForestClassifier, 
-        DecisionTreeClassifier,
-          KNeighborsClassifier
+        DecisionTreeClassifier, KNeighborsClassifier,
        
     ]
-MODEL_MAPPING={
-  "LinearRegression" : LinearRegression,
-   "Ridge" : Ridge,
-    "Lasso" : Lasso,
-    "ElasticNet" : ElasticNet,
-    "BayesianRidge" : BayesianRidge,
-    "SGDRegressor" : SGDRegressor,
-    "DecisionTreeRegressor" : DecisionTreeRegressor,
-    "ExtraTreesRegressor" : ExtraTreesRegressor,
-    "RandomForestRegressor" : RandomForestRegressor,
-    "AdaBoostRegressor" : AdaBoostRegressor,
-    "KNeighborsRegressor" : KNeighborsRegressor,
-    "LogisticRegression" : LogisticRegression,
-    "RandomForestClassifier" : RandomForestClassifier,
-    "DecisionTreeClassifier" : DecisionTreeClassifier,
-    "KNeighborsClassifier" : KNeighborsClassifier
-}
+
 NS = "/training"
 
 
@@ -161,18 +144,19 @@ def _run_job(job_id, dataset, target, problem_type, test_size, random_state):
         _log(job_id, f"Train taget: {len(y_tr)} rows • Test: {len(y_te)} rows")
         _set_progress(job_id, 30)
 
+        # if problem_type == "classification":
+        #     model = RandomForestClassifier(n_estimators=100, random_state=random_state, n_jobs=-1)
+        # else:
+        #     model = RandomForestRegressor(n_estimators=100, random_state=random_state, n_jobs=-1)
+
+        # _log(job_id, "Fitting RandomForest...")
+        # model.fit(X_tr, y_tr)
+        # _set_progress(job_id, 80)
         cm = None
         if problem_type=="classification":
             _log(job_id,"entering model training for classification problem")
-            classification_results, confusion_matrix = _run_classification(
-                job_id=job_id,
-                X_train=X_tr,
-                X_test=X_te,
-                y_train=y_tr,
-                y_test=y_te,
-            )
-            runnner_ouput = classification_results
-            cm = confusion_matrix
+            runnner_ouput,confusion_matrix=_run_classification(job_id=job_id,X_train=X_tr,X_test=X_te,y_train=y_tr,y_test=y_te)
+            cm=confusion_matrix
             _set_progress(job_id, 60)
         else:
             _log(job_id,"entering model training for regression problem")
@@ -180,35 +164,52 @@ def _run_job(job_id, dataset, target, problem_type, test_size, random_state):
             runnner_ouput=_run_regression(job_id=job_id,X_train=X_tr,X_test=X_te,y_train=y_tr,y_test=y_te)
         _log(job_id,"model training completed proceeding to building metrics")
         _log(job_id,"Building metrics and results summary...")
-        # runnner_ouput is expected to be a dict from _run_regression or _format_* wrappers.
         metrics = build(runner_output=runnner_ouput) or {}
-        best_model = metrics.get("best_model")
+        best_model=metrics.get("best_model")
         _log(job_id,f"Best model identified: {best_model}")
         _log(job_id,"Calculating feature importance for best model...")
-        importances = []
-        if best_model:
-            model_cls = MODEL_MAPPING.get(best_model)
-            if model_cls:
-                try:
-                    # Refit selected best model on training data so feature importance works.
-                    model_instance = model_cls()
-                    model_instance.fit(X_tr, y_tr)
-                    importances = calculate_feature_importance(model_instance, X_tr, X_te, y_te)
-                except Exception as e:
-                    _log(job_id, f"Feature importance calculation failed for {best_model}: {e}")
-                    importances = []
+        importances = calculate_feature_importance(best_model, X_tr, X_te, y_te) if best_model else []
         _log(job_id,"Feature importance calculation complete.")
         _set_progress(job_id, 70)
-        # best_model = metrics.get("best_model")
+        
+   
+        # _set_progress(job_id,90)
+        # preds = model.predict(X_te)
+        # if problem_type == "classification":
+        #     metrics = {
+        #         "accuracy": float(accuracy_score(y_te, preds)),
+        #         "f1": float(f1_score(y_te, preds, average="weighted", zero_division=0)),
+        #         "precision": float(precision_score(y_te, preds, average="weighted", zero_division=0)),
+        #         "recall": float(recall_score(y_te, preds, average="weighted", zero_division=0)),
+        #     }
+        #     cm = confusion_matrix(y_te, preds).tolist()
+        # else:
+        #     metrics = {
+        #         "rmse": float(np.sqrt(mean_squared_error(y_te, preds))),
+        #         "mae": float(mean_absolute_error(y_te, preds)),
+        #         "r2": float(r2_score(y_te, preds)),
+        #     }
+        #     cm = None
+
+        # importances = sorted(
+        #     [{"feature": f, "importance": float(i)}
+        #      for f, i in zip(X.columns, model.feature_importances_)],
+        #     key=lambda r: r["importance"], reverse=True,
+        # )[:20]
+        # runner_output is expected to include metrics + (optionally) models.
+       
+
+        # Safe defaults (filled later when we wire classification/regression formatters).
+        
+       
+
+
+        best_model = metrics.get("best_model")
         results = {
             "metrics": metrics,
             "featureImportance": importances,
             "confusionMatrix": cm,
             "modelSummary": f"The {best_model} is the best model" if best_model else "Best model not available",
-            # fields used by the frontend Model info card
-            "problemType": metrics.get("problem_type") if isinstance(metrics, dict) else None,
-            "bestModel": best_model,
-            "bestModelMetrics": metrics.get("best_model_metrics") if isinstance(metrics, dict) else None,
         }
 
         job_model.update(job_id, results=results, status="completed", progress=100)
@@ -235,13 +236,15 @@ def list_user(user_id: str) -> list:
 # running classification and regression with lazy runner
 
 def _format_classification_results(models_df, y_test):
-
     models_df = models_df.copy()
 
+    # -------------------------
+    # Find best metric column
+    # -------------------------
     records = models_df.reset_index().rename(
-        columns={"index": "model"}
-    ).to_dict(orient="records")
-
+            columns={"index": "model"}
+        ).to_dict(orient="records")
+    
     metric_priority = [
         "Accuracy",
         "F1 Score",
@@ -254,17 +257,20 @@ def _format_classification_results(models_df, y_test):
         None
     )
 
+    # -------------------------
+    # Find best model
+    # -------------------------
     best_model = None
     best_row = None
 
-    if score_col:
-
+    if score_col and "Model" in models_df.columns:
         best_idx = models_df[score_col].idxmax()
-
         best_row = models_df.loc[best_idx]
+        best_model = best_row["Model"]
 
-        best_model = str(best_idx)
-
+    # -------------------------
+    # Extract metrics
+    # -------------------------
     metrics = {}
 
     metric_map = {
@@ -275,21 +281,36 @@ def _format_classification_results(models_df, y_test):
     }
 
     for output_name, column_name in metric_map.items():
-
         if column_name in models_df.columns:
-
             if best_row is not None:
                 metrics[output_name] = float(best_row[column_name])
+            else:
+                metrics[output_name] = float(models_df[column_name].max())
 
+    # -------------------------
+    # Confusion matrix
+    # -------------------------
+    confusionMatrix = None
+
+    if "Predictions" in models_df.columns:
+        try:
+            preds = models_df["Predictions"]
+            confusionMatrix = confusion_matrix(y_test, preds).tolist()
+        except:
+            pass
+
+    # -------------------------
+    # Final output
+    # -------------------------
     return {
         "metrics": metrics,
         "problem_type": "classification",
         "models": records,
-        "best_model": best_model,
-        "metric_columns": list(models_df.columns),
-    }
+        "best_model": best_model,"metric_columns": list(models_df.columns),}, confusion_matrix
 
-def _run_classification(job_id, X_train, X_test, y_train, y_test) -> tuple[dict, list[list[int]] | None]:
+def _run_classification(job_id, X_train, X_test, y_train, y_test) -> dict:
+
+       
 
         _log(job_id,"Initialising LazyClassifier with curated fast models...")
         _log(job_id,f"Training {len(classifiers)} classification models...")
@@ -298,23 +319,14 @@ def _run_classification(job_id, X_train, X_test, y_train, y_test) -> tuple[dict,
             verbose=0,
             ignore_warnings=True,
             custom_metric=None,
-            predictions=True,       # we need predictions for confusion matrix
+predictions=True,       # we need predictions for confusion matrix
             classifiers=classifiers,
         )
 
         models_df, _ = clf.fit(X_train, X_test, y_train, y_test)
         _log(job_id, f"Training complete. {len(models_df)} classifiers evaluated.")
 
-        confusion = None
-        try:
-            if "Predictions" in models_df.columns:
-                preds = models_df["Predictions"]
-                confusion = confusion_matrix(y_test, preds).tolist()
-        except Exception:
-            confusion = None
-
-        results = _format_classification_results(models_df, y_test=y_test)
-        return results, confusion
+        return _format_classification_results(models_df, y_test=y_test)
 
 def _run_regression(job_id: str, X_train, X_test, y_train, y_test) -> dict:
 
