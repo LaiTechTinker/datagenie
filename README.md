@@ -21,8 +21,8 @@ The platform allows users to:
 ## 🔗 Important Links
 
 - 🌐 Live Demo: `https://your-live-demo-link.com`
-- 🎨 Frontend Repository: `https://github.com/your-frontend-repo`
-- ⚙️ Backend Repository: `https://github.com/your-backend-repo`
+- 🎨 Frontend Repository: ` https://github.com/LaiTechTinker/vibecoded_data_genie-frontend`
+- ⚙️ Backend Repository: `https://github.com/LaiTechTinker/datagenie`
 
 ---
 
@@ -64,13 +64,13 @@ The platform allows users to:
 
 #### Frontend
 ```bash
-git clone https://github.com/your-frontend-repo.git
+git clone  https://github.com/LaiTechTinker/vibecoded_data_genie-frontend
 cd vibecode-frontend
 ```
 
 #### Backend
 ```bash
-git clone https://github.com/your-backend-repo.git
+git clone https://github.com/LaiTechTinker/datagenie
 cd data_genie
 ```
 
