@@ -1,81 +1,154 @@
-# DataLab Backend (Flask)
+# 🚀 StrakDatalab
 
-Modular Flask backend matching the DataLab frontend feature set.
+StrakDatalab is a web-based data analysis and machine learning platform that enables users to upload datasets and extract meaningful insights with minimal effort.
 
-## Stack
-- Flask + Flask-SocketIO (eventlet) — REST + WebSockets
-- MongoDB (via PyMongo) — persistence
-- scikit-learn + pandas — real AutoML training
-- Mocked LLM — templated report generation & chat
-- JWT auth (PyJWT) — login / signup
+The platform allows users to:
+- Upload `.csv` or `.xlsx` datasets  
+- Generate detailed, LLM-powered PDF reports  
+- Visualize dataset features  
+- Train classical machine learning models with minimal configuration  
+- Monitor training in real-time with logging  
+- Evaluate model performance using standard metrics  
 
-## Architecture
+---
 
+## 📸 Demo
+
+> _Demo screenshot coming soon..._
+
+---
+
+## 🔗 Important Links
+
+- 🌐 Live Demo: `https://your-live-demo-link.com`
+- 🎨 Frontend Repository: `https://github.com/your-frontend-repo`
+- ⚙️ Backend Repository: `https://github.com/your-backend-repo`
+
+---
+
+## ✨ Features
+
+- 📊 **Dataset Overview** – Get quick insights into your dataset structure  
+- 📈 **Feature Visualization** – Generate simple visualizations for data exploration  
+- 🤖 **Auto ML Training** – Train classical ML models with minimal setup  
+- 📉 **Model Evaluation** – View performance metrics (accuracy, etc.)  
+- 🧠 **LLM Report Generation** – Generate detailed PDF reports powered by LLaMA 3B  
+- 📝 **Real-time Logging** – Track model training progress live  
+
+---
+
+## 🛠️ Tech Stack
+
+**Frontend**
+- React (Vite)
+
+**Backend**
+- Flask (Python)
+
+**Database**
+- MongoDB
+
+**Machine Learning**
+- Scikit-learn  
+- Pandas  
+- NumPy  
+
+**AI / LLM**
+- LLaMA 3B  
+
+---
+
+## ⚙️ Installation Guide
+
+### 1. Clone the Repositories
+
+#### Frontend
+```bash
+git clone https://github.com/your-frontend-repo.git
+cd vibecode-frontend
 ```
-backend/
-├── app.py                    # App + SocketIO factory, entrypoint
-├── config.py                 # Env config
-├── extensions.py             # Mongo, SocketIO, bcrypt singletons
-├── requirements.txt
-├── .env.example
-├── api/                      # HTTP blueprints (one per domain)
-│   ├── auth.py
-│   ├── datasets.py
-│   ├── reports.py
-│   ├── automl.py
-│   └── visualizations.py
-├── services/                 # Business logic (framework-free)
-│   ├── auth_service.py
-│   ├── dataset_service.py
-│   ├── report_service.py    # Mocked LLM
-│   ├── automl_service.py    # scikit-learn training + WS streaming
-│   └── viz_service.py
-├── models/                   # Mongo document helpers
-│   ├── user.py
-│   ├── dataset.py
-│   ├── report.py
-│   └── job.py
-├── sockets/                  # SocketIO namespaces
-│   └── training.py
-├── utils/
-│   ├── jwt_utils.py
-│   ├── decorators.py         # @auth_required
-│   ├── parsers.py            # CSV/XLSX -> rows + column meta
-│   └── errors.py
-└── uploads/                  # Raw uploaded files (gitignored)
+
+#### Backend
+```bash
+git clone https://github.com/your-backend-repo.git
+cd data_genie
 ```
 
-## Run
+---
+
+### 2. Setup Frontend
 
 ```bash
-cd backend
-cp .env.example .env          # set MONGO_URI, JWT_SECRET
+npm install
+npm run dev
+```
+
+---
+
+### 3. Setup Backend
+
+```bash
 pip install -r requirements.txt
 python app.py
 ```
+*provide your secret keys in the env file
+---
 
-Server: `http://localhost:5000`  •  Sockets: same origin, namespace `/training`
+## 📁 Backend Folder Structure (Placeholder)
 
-## REST endpoints
+```bash
+backend/
+│── app.py
+│── routes/
+│── models/
+│── services/
+│── utils/
+│── requirements.txt
+│── config/
+│── api/
+│── uploads/
+│── reports/
+│── sockets/
+```
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST   | /api/auth/signup                  | email + password → JWT |
-| POST   | /api/auth/login                   | email + password → JWT |
-| GET    | /api/auth/me                      | current user |
-| GET    | /api/datasets                     | list user datasets |
-| POST   | /api/datasets/upload              | multipart upload (csv/xlsx) |
-| GET    | /api/datasets/<id>                | dataset + preview rows |
-| DELETE | /api/datasets/<id>                | delete |
-| POST   | /api/datasets/<id>/visualizations | suggest charts |
-| POST   | /api/reports                      | generate report for dataset |
-| GET    | /api/reports/<id>                 | get report |
-| POST   | /api/reports/<id>/chat            | send chat message |
-| POST   | /api/automl/jobs                  | start training job |
-| GET    | /api/automl/jobs                  | list jobs |
-| GET    | /api/automl/jobs/<id>             | job + results |
+---
 
-## WebSockets — namespace `/training`
-- client emits `subscribe` `{ jobId }` after connect
-- server emits `job:update` `{ jobId, status, progress, logs[] }`
-- server emits `job:done`   `{ jobId, results }`
+## 🧪 Usage
+
+1. Open the application in your browser  
+2. Upload your dataset (`.csv` or `.xlsx`)  
+3. Explore dataset insights and visualizations  
+4. Train a machine learning model  
+5. Monitor training progress in real-time  
+6. Generate and download a detailed PDF report  
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome!
+
+1. Fork the repository  
+2. Create a new branch  
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+3. Make your changes  
+4. Commit your changes  
+   ```bash
+   git commit -m "Add your message"
+   ```
+5. Push and create a Pull Request  
+
+---
+
+## 📜 License
+
+This project is licensed under the **MIT License**.
+
+---
+
+## 👤 Author
+
+**Alaaya Ibrahim Olayiwola**  
+- GitHub: https://github.com/LaiTechTinker  
