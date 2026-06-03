@@ -15,11 +15,12 @@ from api.automl import automl_bp
 from api.visualizations import viz_bp
 from sockets.training import register_training_namespace
 from utils.errors import register_error_handlers
-
+# from utils.celery_app import celery as celery_app
 
 def create_app() -> Flask:
     app = Flask(__name__)
     app.config.from_object(Config)
+    # celery_app.conf.update(app.config)
     app.config["MAX_CONTENT_LENGTH"] = Config.MAX_UPLOAD_MB * 1024 * 1024
 
     os.makedirs(Config.UPLOAD_DIR, exist_ok=True)

@@ -12,7 +12,7 @@ from models import dataset as ds_model
 from models import report as report_model
 from utils.pdf_prev import generate_pdf_report
 from utils.errors import ApiError
-from utils.S3 import upload_pdf_to_s3,generate_presigned_url
+from utils.S3 import download_pdf_from_s3, upload_pdf_to_s3, generate_presigned_url
 
 
 def _split_insights_to_bullets(insights_text: str) -> list[str]:
@@ -117,32 +117,30 @@ def get(report_id: str) -> dict:
     return report_model.serialize(r)
 
 
-_CANNED = [
-    "Based on the report, the dataset is well-suited for a baseline model.",
-    "Consider handling missing values before training to improve accuracy.",
-    "The most predictive features are likely the numeric columns with low variance loss.",
-    "A tree-based model is a strong starting point for tabular data of this shape.",
-]
-
-def send_pdf_file(report_id: str):
-    summary=None
-    insights=None
-    issues=None
+def _ensure_report_belongs_to_user(user_id: str, report_id: str) -> dict:
     r = report_model.get(report_id)
     if not r:
-        raise ApiError("Report not found for this user", 404)
+        raise ApiError("Report not found", 404)
+    if not ds_model.get(user_id, r.get("dataset_id")):
+        raise ApiError("Report not found", 404)
+    return r
 
-    # Prefer the stored PDF path if present.
+
+def get_pdf_for_report(user_id: str, report_id: str) -> tuple[bytes, str]:
+    r = _ensure_report_belongs_to_user(user_id, report_id)
     s3_key = r.get("file_path")
-        # If no S3 key stored, regenerate, upload and update DB
-    if not s3_key or not isinstance(s3_key, str) or not s3_key.strip():
-        summary = r.get("summary", "")
-        insights = r.get("insights", [])
-        issues = r.get("issues", [])
-    # # Otherwise regenerate from stored structured fields.
-    # summary = r.get("summary", "")
-    # insights = r.get("insights", [])
-    # issues = r.get("issues", [])
+
+    if isinstance(s3_key, str) and s3_key.strip():
+        try:
+            pdf_bytes = download_pdf_from_s3(s3_key)
+            return pdf_bytes, f"report_{report_id}.pdf"
+        except RuntimeError:
+            # If S3 object is missing or cannot be read, regenerate it.
+            pass
+
+    summary = r.get("summary", "") or ""
+    insights = r.get("insights", []) or []
+    issues = r.get("issues", []) or []
 
     pdf_text = "\n".join(
         [
@@ -151,10 +149,50 @@ def send_pdf_file(report_id: str):
             f"SUMMARY: {summary}",
             "",
             "KEY INSIGHTS",
-            *(f"- {b}" for b in (insights or [])[:30]),
+            *(f"- {b}" for b in insights[:30]),
             "",
             "DATA ISSUES",
-            *(f"- {i}" for i in (issues or [])[:20]),
+            *(f"- {i}" for i in issues[:20]),
+        ]
+    )
+
+    s3_key = generate_pdf_report(pdf_text, report_id)
+    report_model.update_file_path(report_id, s3_key)
+    pdf_bytes = download_pdf_from_s3(s3_key)
+    return pdf_bytes, f"report_{report_id}.pdf"
+
+
+_CANNED = [
+    "Based on the report, the dataset is well-suited for a baseline model.",
+    "Consider handling missing values before training to improve accuracy.",
+    "The most predictive features are likely the numeric columns with low variance loss.",
+    "A tree-based model is a strong starting point for tabular data of this shape.",
+]
+
+def send_pdf_file(report_id: str):
+    r = report_model.get(report_id)
+    if not r:
+        raise ApiError("Report not found for this user", 404)
+
+    s3_key = r.get("file_path")
+    if isinstance(s3_key, str) and s3_key.strip():
+        return generate_presigned_url(s3_key)
+
+    summary = r.get("summary", "") or ""
+    insights = r.get("insights", []) or []
+    issues = r.get("issues", []) or []
+
+    pdf_text = "\n".join(
+        [
+            "INSIGHTS REPORT",
+            "",
+            f"SUMMARY: {summary}",
+            "",
+            "KEY INSIGHTS",
+            *(f"- {b}" for b in insights[:30]),
+            "",
+            "DATA ISSUES",
+            *(f"- {i}" for i in issues[:20]),
         ]
     )
 

@@ -5,6 +5,13 @@ from config import Config
 
 
 def get_s3_client():
+    missing = [
+        name for name in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "AWS_S3_BUCKET")
+        if not getattr(Config, name)
+    ]
+    if missing:
+        raise RuntimeError(f"Missing AWS S3 configuration: {', '.join(missing)}")
+
     return boto3.client(
         "s3",
         aws_access_key_id=Config.AWS_ACCESS_KEY_ID,
@@ -51,6 +58,18 @@ def upload_pdf_to_s3(local_path: str, s3_key: str) -> str:
     except ClientError as e:
         raise RuntimeError(f"S3 PDF upload failed: {e}")
     return s3_key
+
+
+def download_pdf_from_s3(s3_key: str) -> bytes:
+    """
+    Downloads a PDF from S3 and returns its bytes.
+    """
+    client = get_s3_client()
+    try:
+        response = client.get_object(Bucket=Config.AWS_S3_BUCKET, Key=s3_key)
+        return response["Body"].read()
+    except ClientError as e:
+        raise RuntimeError(f"S3 download failed: {e}")
 
 
 def generate_presigned_url(s3_key: str, expiry_seconds: int = 3600) -> str:

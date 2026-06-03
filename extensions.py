@@ -1,9 +1,19 @@
 """Shared singletons. Imported by app.py and services to avoid circular imports."""
+import os
+from dotenv import load_dotenv
 from flask_socketio import SocketIO
 from pymongo import MongoClient
 
-socketio = SocketIO(cors_allowed_origins="*", async_mode="gevent")
+load_dotenv()
 
+socketio = SocketIO(
+    cors_allowed_origins="*",
+    async_mode="gevent",
+    # message_queue=os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+)
+
+# socketio = SocketIO(cors_allowed_origins="*", async_mode="gevent", message_queue="redis://localhost:6379/0")
+socketio = SocketIO(cors_allowed_origins="*", async_mode="gevent")
 # Mongo handle is set by app.py during init_extensions().
 mongo_client: MongoClient | None = None
 db = None

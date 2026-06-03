@@ -2,6 +2,7 @@
 import time
 import pandas as pd
 import numpy as np
+# from utils.tasks import run_training_job
 from sklearn.model_selection import train_test_split
 from lazypredict.Supervised import (LazyClassifier,LazyRegressor)
 from sklearn.preprocessing import LabelEncoder
@@ -119,10 +120,11 @@ def start(user_id: str, dataset_id: str, target: str, problem_type: str,
         raise ApiError(f"Target column '{target}' not in dataset", 400)
     if problem_type not in ("classification", "regression"):
         raise ApiError("problemType must be classification or regression", 400)
-
+    from utils.tasks import run_training_job
     job = job_model.create(user_id, dataset_id, target, problem_type, test_size, random_state)
     job_id = str(job["_id"])
     socketio.start_background_task(_run_job, job_id, d, target, problem_type, test_size, random_state)
+    # run_training_job.delay(job_id, d, target, problem_type, test_size, random_state)
     return job_model.serialize(job)
 
 
@@ -366,7 +368,7 @@ def _format_regression_results(models_df: pd.DataFrame) -> dict:
         }
 
 # this builds the runner output
-@staticmethod
+# @staticmethod
 def build(runner_output: dict) -> dict:
         """
         Returns the full metrics dict that gets stored under

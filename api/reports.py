@@ -1,4 +1,6 @@
-from flask import Blueprint, request, jsonify, g, send_file,redirect
+import io
+
+from flask import Blueprint, request, jsonify, g, send_file
 from services import report_service
 from utils.decorators import auth_required
 
@@ -29,8 +31,14 @@ def get(report_id):
 @reports_bp.get("/<report_id>/pdf")
 @auth_required
 def get_pdf(report_id):
-    presigned_url = report_service.send_pdf_file(report_id)
-    return redirect(presigned_url)
+    pdf_bytes, filename = report_service.get_pdf_for_report(g.user_id, report_id)
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename,
+    )
+
 
 @reports_bp.post("/<report_id>/chat")
 @auth_required
